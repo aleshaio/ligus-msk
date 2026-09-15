@@ -1,5 +1,5 @@
 from pathlib import Path
-import hashlib, html, json, os, re, shutil
+import hashlib, html, json, os, re, shutil, struct
 
 ROOT = Path(__file__).parent
 OUT = Path(os.environ.get('OUTPUT_DIR', str(ROOT / 'dist'))).resolve()
@@ -9,6 +9,32 @@ OUT.mkdir(exist_ok=True)
 SITE = json.loads((ROOT / 'site.json').read_text(encoding='utf-8'))
 SITE_URL = os.environ.get('SITE_URL', SITE['domain']).rstrip('/')
 BASE_PATH = os.environ.get('BASE_PATH', '').rstrip('/')
+OG_IMAGE = (OUT / 'og.png').read_bytes()
+if OG_IMAGE[:8] != b'\x89PNG\r\n\x1a\n':
+    raise ValueError('The social preview must be a PNG image')
+OG_WIDTH, OG_HEIGHT = struct.unpack('>II', OG_IMAGE[16:24])
+OG_URL = f'{SITE_URL}/og.png?v={hashlib.sha256(OG_IMAGE).hexdigest()[:10]}'
+OG_ALT = 'Лигус — российская техника и комплексные поставки. Технологии для работы. Решения для развития.'
+
+def social_metadata(title, description):
+    fields = [
+        ('property', 'og:type', 'website'),
+        ('property', 'og:site_name', SITE['name']),
+        ('property', 'og:locale', 'ru_RU'),
+        ('property', 'og:title', title),
+        ('property', 'og:description', description),
+        ('property', 'og:image', OG_URL),
+        ('property', 'og:image:type', 'image/png'),
+        ('property', 'og:image:width', str(OG_WIDTH)),
+        ('property', 'og:image:height', str(OG_HEIGHT)),
+        ('property', 'og:image:alt', OG_ALT),
+        ('name', 'twitter:card', 'summary_large_image'),
+        ('name', 'twitter:title', title),
+        ('name', 'twitter:description', description),
+        ('name', 'twitter:image', OG_URL),
+        ('name', 'twitter:image:alt', OG_ALT),
+    ]
+    return ''.join(f'<meta {attr}="{key}" content="{html.escape(value, quote=True)}">' for attr, key, value in fields)
 
 def phone_link(css=''):
     return f'<a class="{css}" href="tel:{SITE["phoneHref"]}">{SITE["phone"]}</a>'
@@ -47,7 +73,7 @@ def header(active=''):
     links=''.join(f'<a href="/{url}/" {"aria-current=\"page\"" if active==url else ""}>{title}</a>' for url,title in nav)
     def toggle(css):
         return f'<button class="menu-toggle {css}" type="button" aria-label="Открыть меню" aria-controls="mobile-menu" aria-expanded="false"><span></span><span></span></button>'
-    return f'''<a class="skip" href="#main">Перейти к содержанию</a><header class="site-header"><div class="nav-shell"><div class="wrap nav-frame"><div class="nav-brand">{brand()}</div><nav class="nav" aria-label="Основная навигация">{links}</nav>{toggle('nav-menu-toggle')}</div></div><div class="header-main-shell"><div class="header-main wrap">{brand()}<div class="header-contact">{phone_link()}{email_link()}</div><a class="header-cta" href="/request/">Обсудить задачу {icon('up',18)}</a>{toggle('main-menu-toggle')}</div></div></header><dialog class="mobile-menu" id="mobile-menu" aria-label="Меню сайта"><div class="mobile-menu-inner wrap"><div class="mobile-menu-top">{brand()}<button class="menu-close" type="button" aria-label="Закрыть меню" autofocus><span></span><span></span></button></div><nav class="mobile-menu-nav" aria-label="Мобильная навигация">{links}</nav><div class="mobile-menu-bottom"><div class="mobile-menu-contact">{phone_link()}{email_link()}</div><p>{SITE['geography']}</p><a class="button" href="/request/">Обсудить задачу {icon('up',20)}</a></div></div></dialog>'''
+    return f'''<a class="skip" href="#main">Перейти к содержанию</a><header class="site-header"><div class="nav-shell"><div class="wrap nav-frame"><a class="nav-mark" href="/" aria-label="Лигус — главная"><img src="/favicon.svg" width="28" height="28" alt=""></a><div class="nav-brand">{brand()}</div><nav class="nav" aria-label="Основная навигация">{links}</nav>{toggle('nav-menu-toggle')}</div></div><div class="header-main-shell"><div class="header-main wrap">{brand()}<div class="header-contact">{phone_link()}{email_link()}</div><a class="header-cta" href="/request/">Обсудить задачу {icon('up',18)}</a>{toggle('main-menu-toggle')}</div></div></header><dialog class="mobile-menu" id="mobile-menu" aria-label="Меню сайта"><div class="mobile-menu-inner wrap"><div class="mobile-menu-top">{brand()}<button class="menu-close" type="button" aria-label="Закрыть меню" autofocus><span></span><span></span></button></div><nav class="mobile-menu-nav" aria-label="Мобильная навигация">{links}</nav><div class="mobile-menu-bottom"><div class="mobile-menu-contact">{phone_link()}{email_link()}</div><p>{SITE['geography']}</p><a class="button" href="/request/">Обсудить задачу {icon('up',20)}</a></div></div></dialog>'''
 
 def footer():
     return f'''<footer><div class="wrap footer-grid"><div>{brand()}<p>Оборудование, которое решает<br>задачи вашей организации.</p><span class="muted">{SITE['geography']}</span></div><div><h3>Направления</h3><a href="/production/">Продукция</a><a href="/russian-equipment/">Российская техника</a><a href="/production/complex/">Комплексное оснащение</a></div><div><h3>Сотрудничество</h3><a href="/services/">Услуги</a><a href="/customers/">Заказчикам</a><a href="/projects/">Проекты</a><a href="/documents/">Документы</a></div><div><h3>Начнём с вашей задачи</h3><a class="footer-action" href="/request/">Отправить ТЗ {icon('up')}</a>{phone_link('footer-phone')}{email_link('footer-email')}<a href="/contacts/">Контакты и реквизиты</a></div></div><div class="wrap footer-bottom"><span>© 2026 Лигус</span><a href="/privacy/">Персональные данные</a><a href="{SITE['domain']}/" target="_blank" rel="noopener">ligus-msk.ru</a></div></footer>'''
@@ -62,7 +88,7 @@ def write_page(slug, title, description, content, active='', schema=None):
         schema = {**schema, 'url': SITE_URL+'/', 'telephone': SITE['phoneHref'], 'email': SITE['email'], 'areaServed': SITE['areaServed']}
     canonical = SITE_URL + "/" + (slug.strip("/")+"/" if slug else "")
     ld=json.dumps(schema,ensure_ascii=False).replace('</','<\\/') if schema else ''
-    (target/'index.html').write_text(f'''<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{html.escape(title)}</title><meta name="description" content="{html.escape(description,quote=True)}"><meta name="robots" content="noindex,nofollow"><link rel="canonical" href="{canonical}"><meta property="og:url" content="{canonical}"><meta name="theme-color" content="#2427af"><meta property="og:title" content="{html.escape(title,quote=True)}"><meta property="og:description" content="{html.escape(description,quote=True)}"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/pages.css">{'<script type="application/ld+json">'+ld+'</script>' if ld else ''}<script src="/app.js" defer></script></head><body>{header(active)}<main id="main">{content}</main>{footer()}</body></html>''',encoding='utf-8')
+    (target/'index.html').write_text(f'''<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{html.escape(title)}</title><meta name="description" content="{html.escape(description,quote=True)}"><meta name="robots" content="noindex,nofollow"><link rel="canonical" href="{canonical}"><meta property="og:url" content="{canonical}"><meta name="theme-color" content="#2427af">{social_metadata(title, description)}<link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/pages.css">{'<script type="application/ld+json">'+ld+'</script>' if ld else ''}<script src="/app.js" defer></script></head><body>{header(active)}<main id="main">{content}</main>{footer()}</body></html>''',encoding='utf-8')
 
 HOME = f'''<section class="hero wrap"><div class="hero-copy"><span class="eyebrow"><span class="blue-dash"></span> ДЛЯ БИЗНЕСА И ГОСУДАРСТВЕННЫХ УЧРЕЖДЕНИЙ</span><h1>Техника под задачи.<br><span>Поставка под ключ.</span></h1><p>Российская компьютерная техника, электроника и бытовое оборудование. От подбора по реестру Минпромторга до оснащения вашего объекта.</p><div class="hero-actions"><a class="button" href="/request/">Подобрать оборудование {icon('up')}</a><a class="text-link" href="/production/">Что мы поставляем {icon('arrow',20)}</a></div><div class="hero-proof"><span>{icon('check',17)} Подбор под ваше ТЗ</span><span>{icon('check',17)} Поставки по России и странам СНГ</span></div></div><div class="hero-visual"><div class="hero-image"></div><div class="visual-caption"><span>ОТ РАБОЧЕГО МЕСТА<br>ДО ЦЕЛОГО ОБЪЕКТА</span><span class="visual-index">01 — 10</span></div></div></section>
 <section class="benefits wrap"><div><span>01</span><h3>Российское оборудование</h3><p>Подбор моделей из реестра<br>промышленной продукции</p></div><div><span>02</span><h3>Помощь с документацией</h3><p>Техническое задание, спецификация<br>и коммерческое предложение</p></div><div><span>03</span><h3>Комплексное оснащение</h3><p>Техника для кабинета, учреждения<br>или нового объекта</p></div></section>
@@ -185,7 +211,18 @@ write_page('privacy','Условия обработки данных заявк�
 
 write_page('404','Страница не найдена | Лигус','Запрошенная страница не найдена.',f'<section class="wrap thankyou"><span class="eyebrow">404</span><h1>Этой страницы нет.</h1><p>Перейдите к направлениям поставок или начните с главной.</p><a class="button" href="/">На главную {icon("arrow",18)}</a></section>')
 (OUT/'404.html').write_text((OUT/'404/index.html').read_text(),encoding='utf-8')
-(OUT/'robots.txt').write_text('User-agent: *\nDisallow: /\n',encoding='utf-8')
+(OUT/'robots.txt').write_text('''# Allow link previews while the site is awaiting search indexing.
+User-agent: Twitterbot
+User-agent: facebookexternalhit
+User-agent: TelegramBot
+User-agent: LinkedInBot
+User-agent: Slackbot-LinkExpanding
+User-agent: Discordbot
+Allow: /
+
+User-agent: *
+Disallow: /
+''',encoding='utf-8')
 routes=sorted('/'+str(p.parent.relative_to(OUT)).replace('\\','/')+'/' for p in OUT.rglob('index.html') if p.parent!=OUT and p.parent.name not in ['404','thanks','privacy'])
 (ROOT/'routes.json').write_text(json.dumps(['/']+routes,ensure_ascii=False,indent=2),encoding='utf-8')
 print(f'Built {len(list(OUT.rglob("index.html")))} pages in {OUT}')

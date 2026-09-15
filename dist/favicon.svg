@@ -1,7 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
-  <rect width="160" height="160" rx="20" fill="#2427af"/>
-  <g transform="translate(15 16)">
-    <path d="M0 128V94h12L36 0h94v128H90V40H67L43 128Z" fill="white"/>
-    <path d="M0 111h27L53 20h57v108" fill="none" stroke="#2427af" stroke-width="7" stroke-linecap="butt" stroke-linejoin="miter"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="title">
+  <title id="title">Лигус — Л</title>
+  <rect width="160" height="160" fill="white"/>
+  <g transform="translate(31.25 32) scale(.75)">
+    <path d="M0 128V94h12L36 0h94v128H90V40H67L43 128Z" fill="#2427af"/>
+    <path d="M0 111h27L53 20h57v108" fill="none" stroke="white" stroke-width="7" stroke-linecap="butt" stroke-linejoin="miter"/>
   </g>
 </svg>

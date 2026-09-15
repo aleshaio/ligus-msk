@@ -1,2 +1,11 @@
+# Allow link previews while the site is awaiting search indexing.
+User-agent: Twitterbot
+User-agent: facebookexternalhit
+User-agent: TelegramBot
+User-agent: LinkedInBot
+User-agent: Slackbot-LinkExpanding
+User-agent: Discordbot
+Allow: /
+
 User-agent: *
 Disallow: /

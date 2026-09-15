@@ -19,6 +19,9 @@
 .brand,.editorial-home .brand,.footer-grid .brand{position:relative;display:block;flex-shrink:0;width:240px;height:42px;filter:none;overflow:visible}
 .brand img,.editorial-home .brand img,.footer-grid .brand img{position:static;width:100%;height:100%;max-width:100%;margin:0;object-fit:contain;filter:none;opacity:1}
 .editorial-home .brand img,.footer-grid .brand img,.nav-brand .brand img{filter:brightness(0) invert(1)}
+.footer-grid .brand,.editorial-home .footer-grid .brand{width:168px;height:32px}
+.footer-grid>div>a.footer-action{display:inline-flex;align-items:center;justify-content:space-between;gap:24px;min-height:48px;margin-bottom:24px;padding:12px 18px;border:1px solid white;background:white;color:var(--blue);font-size:14px!important;font-weight:600}
+.footer-grid>div>a.footer-action:hover{background:#e6e7ff;border-color:#e6e7ff;color:#171b87}
 /* Desktop navigation and the animated compact header. */
 :root{--hero-body-size:16px}
 html{scroll-padding-top:76px}
@@ -26,6 +29,10 @@ html{scroll-padding-top:76px}
 .editorial-home .site-header{margin-bottom:-52px;color:white}
 .site-header .nav-shell,.editorial-home .site-header .nav-shell{display:block;position:static;border:0;background:var(--blue);color:white}
 .nav-frame{display:flex;align-items:center;height:52px}
+.nav-mark{display:flex;align-items:center;width:28px;height:44px;margin-right:24px;flex-shrink:0;overflow:hidden;transform-origin:left center;transition:width .34s ease,margin-right .34s ease,opacity .2s ease,transform .34s ease,visibility .34s}
+.nav-mark img{display:block;width:28px;height:28px;max-width:none}
+.nav-mark:hover{transform:scale(.94)}
+.is-scrolled .nav-mark{width:0;margin-right:0;opacity:0;visibility:hidden;transform:scale(.7)}
 .site-header .nav,.editorial-home .site-header .nav{display:flex;flex-direction:row;flex-wrap:nowrap;justify-content:flex-end;align-items:center;gap:16px;width:auto;flex:1;min-width:0;min-height:52px;padding:0;font-size:16px;line-height:1.5;font-weight:500;transition:font-size .32s ease}
 .site-header .nav>a,.editorial-home .site-header .nav>a{padding:14px 0;white-space:nowrap;flex-shrink:0}
 .site-header .nav a:hover,.site-header .nav a[aria-current]{color:#fff;text-decoration:underline;text-underline-offset:6px}
@@ -102,6 +109,7 @@ html.menu-open{overflow:hidden;scrollbar-gutter:stable}
  .is-scrolled .header-main>.brand{transform:translateY(-78px) scale(.593)}
 }
 @media(max-width:700px){
+ .nav-mark{display:none}
  .editorial-home .site-header{margin-bottom:-48px}
  body:not(.editorial-home) main{padding-top:40px}
  .site-header .nav-shell,.editorial-home .site-header .nav-shell{background:white;transition:background .3s ease}
