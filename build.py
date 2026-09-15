@@ -1,5 +1,5 @@
 from pathlib import Path
-import html, json, os, re, shutil
+import hashlib, html, json, os, re, shutil
 
 ROOT = Path(__file__).parent
 OUT = Path(os.environ.get('OUTPUT_DIR', str(ROOT / 'dist'))).resolve()
@@ -40,12 +40,14 @@ def icon(name='arrow', size=24):
     return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{paths.get(name,paths["arrow"])}</svg>'
 
 def brand():
-    return '<a class="brand" href="/" aria-label="Лигус — главная"><img src="/assets/ligus-logo.svg" width="188" height="63" alt="Лигус"><small>ТЕХНИКА. РЕШЕНИЯ. ПОСТАВКИ.</small></a>'
+    return '<a class="brand" href="/" aria-label="Лигус — главная"><img src="/assets/ligus-logo.svg" width="674" height="128" alt="Лигус"></a>'
 
 def header(active=''):
     nav = [('production','Продукция'),('russian-equipment','Российская техника'),('services','Услуги'),('customers','Заказчикам'),('about','О компании'),('contacts','Контакты')]
     links=''.join(f'<a href="/{url}/" {"aria-current=\"page\"" if active==url else ""}>{title}</a>' for url,title in nav)
-    return f'''<a class="skip" href="#main">Перейти к содержанию</a><header class="site-header"><div class="nav-shell"><div class="wrap nav-frame"><div class="nav-brand">{brand()}</div><nav class="nav" aria-label="Основная навигация">{links}</nav></div></div><div class="header-main-shell"><div class="header-main wrap">{brand()}<div class="header-contact">{phone_link()}{email_link()}</div><a class="header-cta" href="/request/">Обсудить задачу {icon('up',18)}</a></div></div></header>'''
+    def toggle(css):
+        return f'<button class="menu-toggle {css}" type="button" aria-label="Открыть меню" aria-controls="mobile-menu" aria-expanded="false"><span></span><span></span></button>'
+    return f'''<a class="skip" href="#main">Перейти к содержанию</a><header class="site-header"><div class="nav-shell"><div class="wrap nav-frame"><div class="nav-brand">{brand()}</div><nav class="nav" aria-label="Основная навигация">{links}</nav>{toggle('nav-menu-toggle')}</div></div><div class="header-main-shell"><div class="header-main wrap">{brand()}<div class="header-contact">{phone_link()}{email_link()}</div><a class="header-cta" href="/request/">Обсудить задачу {icon('up',18)}</a>{toggle('main-menu-toggle')}</div></div></header><dialog class="mobile-menu" id="mobile-menu" aria-label="Меню сайта"><div class="mobile-menu-inner wrap"><div class="mobile-menu-top">{brand()}<button class="menu-close" type="button" aria-label="Закрыть меню" autofocus><span></span><span></span></button></div><nav class="mobile-menu-nav" aria-label="Мобильная навигация">{links}</nav><div class="mobile-menu-bottom"><div class="mobile-menu-contact">{phone_link()}{email_link()}</div><p>{SITE['geography']}</p><a class="button" href="/request/">Обсудить задачу {icon('up',20)}</a></div></div></dialog>'''
 
 def footer():
     return f'''<footer><div class="wrap footer-grid"><div>{brand()}<p>Оборудование, которое решает<br>задачи вашей организации.</p><span class="muted">{SITE['geography']}</span></div><div><h3>Направления</h3><a href="/production/">Продукция</a><a href="/russian-equipment/">Российская техника</a><a href="/production/complex/">Комплексное оснащение</a></div><div><h3>Сотрудничество</h3><a href="/services/">Услуги</a><a href="/customers/">Заказчикам</a><a href="/projects/">Проекты</a><a href="/documents/">Документы</a></div><div><h3>Начнём с вашей задачи</h3><a class="footer-action" href="/request/">Отправить ТЗ {icon('up')}</a>{phone_link('footer-phone')}{email_link('footer-email')}<a href="/contacts/">Контакты и реквизиты</a></div></div><div class="wrap footer-bottom"><span>© 2026 Лигус</span><a href="/privacy/">Персональные данные</a><a href="{SITE['domain']}/" target="_blank" rel="noopener">ligus-msk.ru</a></div></footer>'''
@@ -198,6 +200,11 @@ for page in list(OUT.rglob('index.html'))+[OUT/'404.html']:
     text=page.read_text().replace('</head>','<link rel="stylesheet" href="/editorial.css"><link rel="stylesheet" href="/refinements.css"></head>').replace('<br>','<br> ')
     if page==OUT/'index.html': text=text.replace('<body>','<body class="editorial-home">')
     text = text.replace('<meta name="viewport"', f'<meta name="site-base" content="{BASE_PATH}"><meta name="viewport"')
+    def version_asset(match):
+        asset = ROOT / 'dist' / match[2].lstrip('/')
+        revision = hashlib.sha256(asset.read_bytes()).hexdigest()[:10]
+        return f'{match[1]}="{match[2]}?v={revision}"'
+    text = re.sub(r'(href|src)="(/[^"?]+\.(?:css|js|svg|webp))"', version_asset, text)
     if BASE_PATH:
         text = re.sub(r'(href|src|action)="(/(?!/)[^"]*)"', lambda m: f'{m[1]}="{BASE_PATH}{m[2]}"', text)
     page.write_text(text,encoding='utf-8')

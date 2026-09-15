@@ -4,6 +4,61 @@ const updateHeader = () => header?.classList.toggle('is-scrolled', window.scroll
 window.addEventListener('scroll', updateHeader, {passive: true});
 updateHeader();
 
+const mobileMenu = document.querySelector('.mobile-menu');
+const menuToggles = document.querySelectorAll('.menu-toggle');
+const mobileViewport = window.matchMedia('(max-width: 700px)');
+let menuClosing;
+let menuScrollY = 0;
+let menuOpener;
+const finishMenuClose = () => {
+  clearTimeout(menuClosing);
+  mobileMenu.close();
+  mobileMenu.classList.remove('is-closing');
+  document.documentElement.classList.remove('menu-open');
+  menuToggles.forEach(button => button.setAttribute('aria-expanded', 'false'));
+  window.scrollTo({top: menuScrollY, behavior: 'instant'});
+  updateHeader();
+  menuOpener?.focus({preventScroll: true});
+};
+const closeMenu = (immediate = false) => {
+  if (!mobileMenu.open) return;
+  if (immediate || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    finishMenuClose();
+  } else {
+    mobileMenu.classList.add('is-closing');
+    menuClosing = setTimeout(finishMenuClose, 180);
+  }
+};
+menuToggles.forEach(button => button.addEventListener('click', () => {
+  clearTimeout(menuClosing);
+  menuScrollY = window.scrollY;
+  menuOpener = button;
+  mobileMenu.classList.remove('is-closing');
+  document.documentElement.classList.add('menu-open');
+  menuToggles.forEach(toggle => toggle.setAttribute('aria-expanded', 'true'));
+  mobileMenu.showModal();
+}));
+mobileMenu?.querySelector('.menu-close').addEventListener('click', () => closeMenu());
+mobileMenu?.addEventListener('cancel', event => {
+  event.preventDefault();
+  closeMenu();
+});
+mobileMenu?.addEventListener('keydown', event => {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeMenu();
+  }
+});
+mobileMenu?.addEventListener('click', event => {
+  if (event.target.closest('a')) closeMenu(true);
+});
+mobileViewport.addEventListener('change', event => {
+  if (!event.matches) closeMenu(true);
+});
+window.addEventListener('pageshow', () => {
+  if (mobileMenu?.open) closeMenu(true);
+});
+
 const categories = {computers:'Компьютеры и моноблоки',laptops:'Ноутбуки и планшеты',displays:'Мониторы и интерактивные панели',printers:'Принтеры и МФУ',servers:'Серверы и сетевое оборудование',peripherals:'Периферия и ИБП',software:'Российское ПО',electronics:'Электроника и мультимедиа',appliances:'Бытовая техника',complex:'Комплексное оснащение',registry:'Техника из реестра Минпромторга'};
 const params = new URLSearchParams(location.search);
 const category = categories[params.get('category')] || '';
