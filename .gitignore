@@ -1,0 +1,13 @@
+.DS_Store
+__pycache__/
+.sites-runtime/
+_site/
+fonts-source.css
+dist/assets/logo.png
+dist/assets/logo-v2.png
+dist/assets/equipment.png
+.env
+.env.*
+asset-prompts.md
+dist/assets/logo-v3.png
+dist/assets/logo-v4-white.png

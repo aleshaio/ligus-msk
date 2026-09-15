@@ -1,0 +1,11 @@
+{
+  "name": "Лигус",
+  "domain": "http://ligus-msk.ru",
+  "email": "tender@ligus-msk.ru",
+  "phone": "+7 977 977 22 31",
+  "phoneHref": "+79779772231",
+  "formEndpoint": "https://formsubmit.co/tender@ligus-msk.ru",
+  "maxFileMb": 10,
+  "geography": "Вся Россия и страны СНГ",
+  "areaServed": ["Россия", "Страны СНГ"]
+}

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8 -14 692 158" role="img" aria-labelledby="title">
+  <title id="title">Лигус</title>
+  <defs>
+    <g id="letters" fill="none" stroke-linecap="butt" stroke-linejoin="round">
+      <path d="M18 122 66 16 114 122"/>
+      <path transform="translate(4 0)" d="M166 0v100q0 15 10 3l58-79q12-17 12 2v102"/>
+      <path transform="translate(18 0)" d="M296 128V39q0-23 23-23h59"/>
+      <path transform="translate(20 0)" d="m410 5 56 57m35-57-66 118"/>
+      <path transform="translate(24 0)" d="M648 16h-62q-30 0-30 30v36q0 30 30 30h62"/>
+    </g>
+    <mask id="channels" maskUnits="userSpaceOnUse" x="-8" y="-14" width="692" height="158" style="mask-type:luminance">
+      <use href="#letters" stroke="white" stroke-width="46"/>
+      <use href="#letters" stroke="black" stroke-width="8"/>
+    </mask>
+  </defs>
+  <path d="M-8-14h692v158H-8z" fill="#2427af" mask="url(#channels)"/>
+</svg>
