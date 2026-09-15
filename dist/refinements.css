@@ -26,7 +26,7 @@ html{scroll-padding-top:76px}
 .editorial-home .site-header{margin-bottom:-52px;color:white}
 .site-header .nav-shell,.editorial-home .site-header .nav-shell{display:block;position:static;border:0;background:var(--blue);color:white}
 .nav-frame{display:flex;align-items:center;height:52px}
-.site-header .nav,.editorial-home .site-header .nav{display:flex;flex-direction:row;flex-wrap:nowrap;justify-content:flex-start;align-items:center;gap:16px;width:auto;flex:1;min-width:0;min-height:52px;padding:0;font-size:16px;line-height:1.5;font-weight:500;transition:font-size .32s ease}
+.site-header .nav,.editorial-home .site-header .nav{display:flex;flex-direction:row;flex-wrap:nowrap;justify-content:flex-end;align-items:center;gap:16px;width:auto;flex:1;min-width:0;min-height:52px;padding:0;font-size:16px;line-height:1.5;font-weight:500;transition:font-size .32s ease}
 .site-header .nav>a,.editorial-home .site-header .nav>a{padding:14px 0;white-space:nowrap;flex-shrink:0}
 .site-header .nav a:hover,.site-header .nav a[aria-current]{color:#fff;text-decoration:underline;text-underline-offset:6px}
 .header-main-shell{position:absolute;top:100%;left:0;width:100%;background:white;border-bottom:1px solid var(--line);transition:opacity .16s ease .18s,visibility .34s}
