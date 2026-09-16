@@ -67,6 +67,25 @@ const serviceIndex = params.get('service');
 const service = serviceIndex !== null && /^\d$/.test(serviceIndex) ? services[Number(serviceIndex)] || '' : '';
 const emitEvent = (name, details={}) => window.dispatchEvent(new CustomEvent('ligus:conversion', {detail:{name,...details}}));
 
+// No analytics or advertising providers are currently enabled. This dialog
+// describes that state; it does not collect a blanket consent for future tools.
+const cookieDialog = document.querySelector('#cookie-dialog');
+document.querySelectorAll('.cookie-settings').forEach(link => {
+  link.addEventListener('click', event => {
+    if (!cookieDialog?.showModal) return;
+    event.preventDefault();
+    cookieDialog.showModal();
+  });
+});
+cookieDialog?.querySelectorAll('.cookie-close, a').forEach(control => {
+  control.addEventListener('click', () => cookieDialog.close());
+});
+cookieDialog?.addEventListener('click', event => {
+  if (event.target !== cookieDialog) return;
+  const rect = cookieDialog.getBoundingClientRect();
+  if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) cookieDialog.close();
+});
+
 document.querySelectorAll('.request-form').forEach(form => {
   const file = form.elements.attachment;
   const error = form.querySelector('.form-error');
