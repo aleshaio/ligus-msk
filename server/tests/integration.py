@@ -1,5 +1,6 @@
 """Real PHP HTTP endpoint + local SMTP sink. No external messages or dependencies."""
 import base64
+from contextlib import contextmanager, closing
 import email
 from email import policy
 import hashlib
@@ -26,6 +27,11 @@ PHP = os.environ.get('PHP_BIN') or shutil.which('php') or '/opt/homebrew/opt/php
 SECRET = 'test-secret-never-use-in-production-0123456789'
 VALID = dict(name='Тестовый заказчик', phone='+7 977 000 00 00', email='client@example.test', organization='Тестовая организация', comment='Нужны российские ноутбуки', consent='on', _honey='')
 PDF = b'%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF\n'
+
+@contextmanager
+def connection(path):
+    with closing(sqlite3.connect(path)) as conn, conn:
+        yield conn
 
 class Sink(socketserver.StreamRequestHandler):
     def handle(self):
@@ -84,8 +90,8 @@ class Harness:
         self.write_config()
         self.log = open(self.root / 'php.log', 'w+')
         self.process = subprocess.Popen([PHP, '-d', 'upload_max_filesize=10M', '-d', 'post_max_size=12M',
-            '-d', 'max_file_uploads=2', '-d', 'display_errors=0', '-S', f'127.0.0.1:{self.port}', '-t', str(self.root / 'public_html')],
-            stdout=self.log, stderr=self.log)
+            '-d', 'max_file_uploads=2', '-d', 'memory_limit=128M', '-d', 'display_errors=0', '-S', f'127.0.0.1:{self.port}', '-t', str(self.root / 'public_html')],
+            stdout=self.log, stderr=self.log, env=dict(os.environ, XDEBUG_MODE='off'))
         for _ in range(100):
             if self.process.poll() is not None: raise RuntimeError('PHP failed: ' + (self.root / 'php.log').read_text())
             try:
@@ -129,6 +135,8 @@ class Harness:
         return self.http('POST', fields=fields, **kwargs)
 
     def close(self):
+        if self.process.poll() is not None:
+            print('PHP exited:', self.process.returncode, (self.root / 'php.log').read_text()[-5000:])
         self.process.terminate(); self.process.wait(timeout=5)
         self.smtp.shutdown(); self.smtp.server_close(); self.log.close(); self.temp.cleanup()
 
@@ -142,7 +150,7 @@ class ContactTests(unittest.TestCase):
         self.h.config['enabled'] = True; self.h.config['environment'] = 'test'; self.h.write_config()
         db = self.h.private / 'runtime' / 'state.sqlite'
         if db.exists():
-            with sqlite3.connect(db) as conn:
+            with connection(db) as conn:
                 conn.execute('DELETE FROM events'); conn.execute('DELETE FROM requests')
 
     def test_plain_message_headers_and_unicode(self):
@@ -249,7 +257,7 @@ class ContactTests(unittest.TestCase):
         self.assertEqual(headers['Cache-Control'], 'no-store')
         self.assertIsNone(headers.get('Set-Cookie'))
         self.assertIsNone(headers.get('Access-Control-Allow-Origin'))
-        with sqlite3.connect(self.h.private / 'runtime' / 'state.sqlite') as conn:
+        with connection(self.h.private / 'runtime' / 'state.sqlite') as conn:
             state = str(conn.execute('SELECT * FROM events').fetchall()) + str(conn.execute('SELECT * FROM requests').fetchall())
         for value in [VALID['name'], VALID['email'], VALID['phone'], VALID['comment'], '127.0.0.1']:
             self.assertNotIn(value, state)
@@ -261,12 +269,12 @@ class ContactTests(unittest.TestCase):
         self.h.token()
         runtime = self.h.private / 'runtime'
         old = runtime / 'upload-old'; old.write_bytes(b'old upload'); os.utime(old, (time.time() - 7200,) * 2)
-        with sqlite3.connect(runtime / 'state.sqlite') as conn:
+        with connection(runtime / 'state.sqlite') as conn:
             conn.execute('INSERT INTO events VALUES (?, ?, ?)', (time.time() - 8000, 'old', 'hash'))
         subprocess.run([PHP, str(self.h.private / 'check.php')], cwd=self.h.root, check=True, capture_output=True)
         subprocess.run([PHP, str(self.h.private / 'maintenance.php')], cwd=self.h.root, check=True, capture_output=True)
         self.assertFalse(old.exists())
-        with sqlite3.connect(runtime / 'state.sqlite') as conn:
+        with connection(runtime / 'state.sqlite') as conn:
             self.assertEqual(conn.execute("SELECT count(*) FROM events WHERE kind='old'").fetchone()[0], 0)
 
 if __name__ == '__main__':
