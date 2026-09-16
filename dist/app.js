@@ -92,7 +92,7 @@ document.querySelectorAll('.request-form').forEach(form => {
   const fileInfo = form.querySelector('.file-info');
   const submitButton = form.querySelector('button[type="submit"]');
   const submitLabel = submitButton.innerHTML;
-  form.elements._next.value = `${location.origin}${siteBase}/thanks/`;
+  if (form.elements._next) form.elements._next.value = `${location.origin}${siteBase}/thanks/`;
   if(category || service) form.elements.comment.value = `Интересует: ${category || service}.\n`;
   function validateFile() {
     file.setCustomValidity('');
@@ -112,7 +112,10 @@ document.querySelectorAll('.request-form').forEach(form => {
   }
   file.addEventListener('change',validateFile);
   form.elements.phone.addEventListener('input',()=>form.elements.phone.setCustomValidity(''));
-  form.addEventListener('submit', event => {
+  let token = '';
+  let sending = false;
+  form.addEventListener('submit', async event => {
+    if (sending) { event.preventDefault(); return; }
     event.preventDefault(); error.textContent='';
     const phone=form.elements.phone;
     const digits=phone.value.replace(/\D/g,'');
@@ -127,7 +130,45 @@ document.querySelectorAll('.request-form').forEach(form => {
     submitButton.disabled = true;
     submitButton.textContent = 'Отправляем…';
     emitEvent('form_submit_started',{form:form.closest('.contact-section') ? 'home' : 'request'});
-    HTMLFormElement.prototype.submit.call(form);
+    if (form.dataset.provider !== 'smtp') {
+      HTMLFormElement.prototype.submit.call(form);
+      return;
+    }
+    sending = true;
+    form.setAttribute('aria-busy', 'true');
+    try {
+      // The SMTP endpoint stays on this origin. Never fall back to a third party.
+      const endpoint = new URL(form.action);
+      if (endpoint.origin !== location.origin) throw new Error('Ошибка настройки формы. Свяжитесь с нами по телефону.');
+      if (!token) {
+        const tokenResponse = await fetch(endpoint, {credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(20000)});
+        const result = await tokenResponse.json();
+        if (!tokenResponse.ok || !result.token) throw new Error(result.message || 'Не удалось подготовить отправку. Повторите позже.');
+        token = result.token;
+      }
+      const data = new FormData(form);
+      data.set('token', token);
+      const response = await fetch(endpoint, {method: 'POST', body: data, credentials: 'same-origin', signal: AbortSignal.timeout(65000)});
+      const result = await response.json();
+      if (!response.ok || result.ok !== true) {
+        if (result.code === 'token_expired') token = '';
+        if (result.field) form.elements.namedItem(result.field)?.focus();
+        throw new Error(result.message || 'Не удалось подтвердить отправку. Свяжитесь с нами по телефону.');
+      }
+      emitEvent('form_submit_success');
+      location.assign(`${siteBase}/thanks/`);
+    } catch (failure) {
+      error.textContent = failure instanceof TypeError || failure instanceof SyntaxError || failure.name === 'TimeoutError'
+        ? 'Не удалось подтвердить отправку. Данные остались в форме. Проверьте соединение и повторите попытку или свяжитесь с нами по телефону.'
+        : failure.message;
+      error.setAttribute('tabindex', '-1');
+      error.focus({preventScroll: true});
+      submitButton.disabled = false;
+      submitButton.innerHTML = submitLabel;
+    } finally {
+      sending = false;
+      form.removeAttribute('aria-busy');
+    }
   });
   window.addEventListener('pageshow', () => {
     submitButton.disabled = false;

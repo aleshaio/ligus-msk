@@ -11,3 +11,8 @@ dist/assets/equipment.png
 asset-prompts.md
 dist/assets/logo-v3.png
 dist/assets/logo-v4-white.png
+
+# SMTP secrets, technical state and generated hosting packages
+server/private/contact/config.php
+server/private/contact/runtime/
+release/
