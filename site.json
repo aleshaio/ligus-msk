@@ -4,6 +4,8 @@
   "email": "tender@ligus-msk.ru",
   "phone": "+7 977 977 22 31",
   "phoneHref": "+79779772231",
+  "formProvider": "formsubmit",
+  "yandexFormUrl": "",
   "formEndpoint": "https://formsubmit.co/tender@ligus-msk.ru",
   "maxFileMb": 10,
   "geography": "Вся Россия и страны СНГ",
