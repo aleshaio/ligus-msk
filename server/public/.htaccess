@@ -1,2 +1,14 @@
 DirectoryIndex index.html
 ErrorDocument 404 /404.html
+
+# Keep browser forms on the HTTPS origin accepted by the SMTP handler.
+RewriteEngine On
+RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
+RewriteCond %{HTTP_HOST} ^www\.ligus-msk\.ru$ [NC]
+RewriteRule ^ https://ligus-msk.ru%{REQUEST_URI} [R=308,L,NE]
+
+# REG.RU may terminate TLS at its nginx proxy before forwarding to Apache.
+RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
+RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTP:X-Forwarded-Proto} !^https$ [NC]
+RewriteRule ^ https://ligus-msk.ru%{REQUEST_URI} [R=308,L,NE]
