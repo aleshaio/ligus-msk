@@ -29,4 +29,6 @@ jobs:
           PHP_BIN=php python3 server/tests/integration.py
           node --check dist/app.js
       - name: Build package without credentials
-        run: python3 scripts/build_hosting.py
+        run: |
+          python3 scripts/build_hosting.py
+          python3 scripts/build_hosting.py --layout regru

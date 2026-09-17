@@ -10,18 +10,22 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 p = argparse.ArgumentParser()
 p.add_argument('--site-url', default='https://ligus-msk.ru')
+p.add_argument('--layout', choices=['standard', 'regru'], default='standard')
 a = p.parse_args()
 u = urlsplit(a.site_url)
 if u.scheme != 'https' or not u.hostname or u.path not in ('', '/') or u.query or u.fragment or u.username:
     p.error('--site-url must be an HTTPS origin without a path')
-release = ROOT / 'release' / 'ligus-hosting'
+release = ROOT / 'release' / ('ligus-regru' if a.layout == 'regru' else 'ligus-hosting')
 if release.exists():
     shutil.rmtree(release)
-public = release / 'public_html'
+public = release / 'www' / u.hostname if a.layout == 'regru' else release / 'public_html'
 private = release / 'private' / 'contact'
 env = dict(os.environ, OUTPUT_DIR=str(public), FORM_PROVIDER='smtp', BASE_PATH='', SITE_URL=a.site_url.rstrip('/'))
 subprocess.run([sys.executable, str(ROOT / 'build.py')], env=env, check=True)
 shutil.copytree(ROOT / 'server' / 'public', public, dirs_exist_ok=True)
+if a.layout == 'regru':
+    entry = public / 'api' / 'contact.php'
+    entry.write_text(entry.read_text().replace('dirname(__DIR__, 2)', 'dirname(__DIR__, 3)'))
 private.mkdir(parents=True)
 # Explicit allowlist prevents config.php / runtime / backups entering the release.
 for name in ['config.example.php', 'handler.php', 'check.php', 'maintenance.php']:
