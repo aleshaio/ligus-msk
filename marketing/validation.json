@@ -1,0 +1,9 @@
+{
+  "campaigns": 3,
+  "groups": 12,
+  "phrases": 71,
+  "headlines": 48,
+  "texts": 36,
+  "status": "offline_draft_not_uploaded",
+  "checks": "lengths, local targets, anchors, URL tags"
+}

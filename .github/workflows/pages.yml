@@ -34,7 +34,9 @@ jobs:
         run: |
           python3 build.py
           python3 verify.py
+          python3 scripts/prepare_marketing.py
           node --check dist/app.js
+          node --check dist/analytics.js
       - name: Build website
         env:
           OUTPUT_DIR: _site

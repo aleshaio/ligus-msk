@@ -65,10 +65,13 @@ const category = categories[params.get('category')] || '';
 const services = ['Подбор оборудования','Подготовка ТЗ и спецификации','Коммерческое предложение','Комплексное оснащение','Доставка и установка','Гарантийное сопровождение'];
 const serviceIndex = params.get('service');
 const service = serviceIndex !== null && /^\d$/.test(serviceIndex) ? services[Number(serviceIndex)] || '' : '';
-const emitEvent = (name, details={}) => window.dispatchEvent(new CustomEvent('ligus:conversion', {detail:{name,...details}}));
+const intent = ['selection', 'quote'].includes(params.get('intent')) ? params.get('intent') : '';
+const emitEvent = (name, details={}) => {
+  window.dispatchEvent(new CustomEvent('ligus:conversion', {detail:{name,...details}}));
+  return window.ligusAnalytics?.track(name, {...details, intent}) || Promise.resolve();
+};
 
-// No analytics or advertising providers are currently enabled. This dialog
-// describes that state; it does not collect a blanket consent for future tools.
+// Analytics consent is managed separately; opening or closing this is not consent.
 const cookieDialog = document.querySelector('#cookie-dialog');
 document.querySelectorAll('.cookie-settings').forEach(link => {
   link.addEventListener('click', event => {
@@ -94,6 +97,10 @@ document.querySelectorAll('.request-form').forEach(form => {
   const submitLabel = submitButton.innerHTML;
   if (form.elements._next) form.elements._next.value = `${location.origin}${siteBase}/thanks/`;
   if(category || service) form.elements.comment.value = `Интересует: ${category || service}.\n`;
+  if (intent && !form.elements.comment.value.includes('Этап:')) {
+    form.elements.comment.value += intent === 'quote' ? 'Этап: есть спецификация, нужен расчёт поставки.\n' : 'Этап: нужна помощь с подбором и формированием ТЗ.\n';
+  }
+  form.addEventListener('input', () => emitEvent('form_start', {form: form.closest('.contact-section') ? 'home' : 'request'}), {once:true});
   function validateFile() {
     file.setCustomValidity('');
     const selected = file.files[0];
@@ -110,7 +117,9 @@ document.querySelectorAll('.request-form').forEach(form => {
     error.textContent = file.validationMessage;
     return file.validity.valid;
   }
-  file.addEventListener('change',validateFile);
+  file.addEventListener('change', () => {
+    if (validateFile() && file.files.length) emitEvent('file_attached');
+  });
   form.elements.phone.addEventListener('input',()=>form.elements.phone.setCustomValidity(''));
   let token = '';
   let sending = false;
@@ -155,9 +164,11 @@ document.querySelectorAll('.request-form').forEach(form => {
         if (result.field) form.elements.namedItem(result.field)?.focus();
         throw new Error(result.message || 'Не удалось подтвердить отправку. Свяжитесь с нами по телефону.');
       }
-      emitEvent('form_submit_success');
+      // Wait briefly for the goal callback before leaving; analytics can never block a lead.
+      await emitEvent('form_submit_success');
       location.assign(`${siteBase}/thanks/`);
     } catch (failure) {
+      emitEvent('form_submit_error');
       error.textContent = failure instanceof TypeError || failure instanceof SyntaxError || failure.name === 'TimeoutError'
         ? 'Не удалось подтвердить отправку. Данные остались в форме. Проверьте соединение и повторите попытку или свяжитесь с нами по телефону.'
         : failure.message;

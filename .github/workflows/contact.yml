@@ -2,9 +2,9 @@ name: Test SMTP handler
 
 on:
   push:
-    paths: ['server/**', 'scripts/build_hosting.py', 'build.py', 'dist/app.js', '.github/workflows/contact.yml']
+    paths: ['server/**', 'scripts/build_hosting.py', 'build.py', 'seo.py', 'marketing/**', 'dist/app.js', 'dist/analytics.js', '.github/workflows/contact.yml']
   pull_request:
-    paths: ['server/**', 'scripts/build_hosting.py', 'build.py', 'dist/app.js', '.github/workflows/contact.yml']
+    paths: ['server/**', 'scripts/build_hosting.py', 'build.py', 'seo.py', 'marketing/**', 'dist/app.js', 'dist/analytics.js', '.github/workflows/contact.yml']
   workflow_dispatch:
 
 permissions:
@@ -28,7 +28,9 @@ jobs:
           find server -name '*.php' -print0 | xargs -0 -n 1 php -l
           PHP_BIN=php python3 server/tests/integration.py
           node --check dist/app.js
+          node --check dist/analytics.js
       - name: Build package without credentials
         run: |
           python3 scripts/build_hosting.py
           python3 scripts/build_hosting.py --layout regru
+          INDEXING_ENABLED=1 python3 scripts/build_hosting.py --layout regru
